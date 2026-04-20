@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>算控融合监测平台 · 中山大学先进制造</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<style>
+:root{
+  --dark:#141413; --light:#faf9f5; --mid:#b0aea5; --line:#e8e6dc;
+  --paper:#f5f3eb; --card:#ffffff;
+  --orange:#d97757; --orange-soft:#f4ddd0;
+  --blue:#6a9bcc;   --blue-soft:#dde7f2;
+  --green:#788c5d;  --green-soft:#dde2cf;
+  --red:#c25450;    --red-soft:#f0d4d2;
+  --display:'Poppins','Helvetica Neue',Arial,sans-serif;
+  --serif:'Lora',Georgia,'Songti SC',serif;
+  --mono:'JetBrains Mono','SF Mono',Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{
+  background:var(--light);color:var(--dark);
+  font-family:var(--serif);font-size:16px;line-height:1.6;
+  min-height:100vh;-webkit-font-smoothing:antialiased;
+  scroll-behavior:smooth;
+}
+::selection{background:var(--orange-soft);color:var(--dark)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:var(--light)}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px;border:2px solid var(--light)}
+::-webkit-scrollbar-thumb:hover{background:var(--mid)}
+
+/* ===== Topbar ===== */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 48px;border-bottom:1px solid var(--line);
+  background:rgba(250,249,245,.85);backdrop-filter:blur(12px);
+  position:sticky;top:0;z-index:50;
+}
+.brand{display:flex;align-items:center;gap:14px}
+.brand-mark{
+  width:38px;height:38px;border-radius:11px;background:var(--orange);
+  color:#fff;display:flex;align-items:center;justify-content:center;
+  font-family:var(--display);font-weight:700;font-size:17px;letter-spacing:-.02em;
+  box-shadow:0 2px 8px rgba(217,119,87,.28);
+  position:relative;overflow:hidden;
+}
+.brand-mark::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,transparent 40%,rgba(255,255,255,.25) 50%,transparent 60%);
+  animation:shine 3.5s ease-in-out infinite;
+}
+@keyframes shine{0%,60%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.brand-text{font-family:var(--display);font-weight:600;font-size:17px;letter-spacing:-.01em}
+.brand-sub{font-family:var(--serif);font-style:italic;font-size:13px;color:var(--mid);margin-top:2px}
+.top-nav{display:flex;gap:28px;font-family:var(--display);font-size:13px;color:var(--mid)}
+.top-nav a{text-decoration:none;color:inherit;transition:color .15s;cursor:pointer}
+.top-nav a:hover{color:var(--orange)}
+.top-right{display:flex;align-items:center;gap:18px;font-family:var(--display);font-size:13px}
+.clock{font-family:var(--mono);color:var(--dark);font-size:14px;font-weight:500}
+.status-pill{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:7px 14px;border-radius:999px;
+  background:var(--green-soft);color:var(--green);
+  font-family:var(--display);font-weight:500;font-size:13px;
+  transition:background .25s,color .25s;
+}
+.status-dot{width:8px;height:8px;border-radius:50%;background:currentColor;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.85)}}
+.status-pill.warn{background:var(--orange-soft);color:var(--orange)}
+.status-pill.danger{background:var(--red-soft);color:var(--red)}
+
+/* ===== Layout ===== */
+.container{max-width:1440px;margin:0 auto;padding:0 48px}
+section{padding:64px 0}
+section.tight{padding:32px 0}
+
+/* ===== Hero ===== */
+.hero{
+  padding:96px 0 80px;position:relative;overflow:hidden;
+}
+.hero::before, .hero::after{
+  content:'';position:absolute;border-radius:50%;
+  filter:blur(80px);opacity:.45;pointer-events:none;z-index:0;
+}
+.hero::before{
+  width:420px;height:420px;background:var(--orange-soft);
+  top:-80px;right:-80px;animation:float1 18s ease-in-out infinite;
+}
+.hero::after{
+  width:340px;height:340px;background:var(--blue-soft);
+  bottom:-100px;left:-60px;animation:float2 22s ease-in-out infinite;
+}
+@keyframes float1{0%,100%{transform:translate(0,0)}50%{transform:translate(-30px,40px)}}
+@keyframes float2{0%,100%{transform:translate(0,0)}50%{transform:translate(50px,-30px)}}
+.hero-inner{position:relative;z-index:1;max-width:880px}
+.eyebrow{
+  font-family:var(--display);text-transform:uppercase;letter-spacing:.16em;
+  font-size:11px;color:var(--orange);font-weight:600;margin-bottom:18px;
+  display:inline-flex;align-items:center;gap:10px;
+}
+.eyebrow::before{content:'';width:24px;height:1px;background:var(--orange)}
+.hero-title{
+  font-family:var(--display);font-weight:600;font-size:64px;
+  letter-spacing:-.03em;line-height:1.02;margin-bottom:18px;
+}
+.hero-title em{
+  font-family:var(--serif);font-style:italic;font-weight:400;
+  color:var(--orange);
+}
+.hero-sub{
+  font-family:var(--serif);font-size:19px;color:var(--mid);
+  font-style:italic;line-height:1.55;max-width:680px;margin-bottom:32px;
+}
+.hero-pills{display:flex;flex-wrap:wrap;gap:10px}
+.hero-pill{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 14px;border:1px solid var(--line);border-radius:999px;
+  font-family:var(--display);font-size:12px;font-weight:500;
+  background:rgba(255,255,255,.6);backdrop-filter:blur(4px);
+  transition:all .2s;
+}
+.hero-pill:hover{border-color:var(--orange);color:var(--orange);transform:translateY(-1px)}
+.hero-pill .dot{width:6px;height:6px;border-radius:50%}
+.hero-pill .dot.o{background:var(--orange)}
+.hero-pill .dot.b{background:var(--blue)}
+.hero-pill .dot.g{background:var(--green)}
+.hero-pill .dot.d{background:var(--dark)}
+
+/* ===== Section title ===== */
+.sec-head{margin-bottom:36px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.sec-num{
+  font-family:var(--mono);font-size:11px;color:var(--orange);
+  letter-spacing:.1em;margin-bottom:6px;font-weight:500;
+}
+.sec-title{font-family:var(--display);font-weight:600;font-size:34px;letter-spacing:-.02em;line-height:1.1}
+.sec-sub{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--mid);margin-top:6px;max-width:560px}
+.sec-meta{font-family:var(--mono);font-size:11px;color:var(--mid)}
+
+/* ===== Metric grid ===== */
+.metric-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:16px}
+.metric-card{
+  background:var(--card);border:1px solid var(--line);border-radius:18px;
+  padding:22px;transition:transform .25s,box-shadow .25s,border-color .25s;
+  position:relative;overflow:hidden;
+}
+.metric-card::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--orange),transparent);
+  transform:translateX(-100%);transition:transform .6s;
+}
+.metric-card:hover{transform:translateY(-3px);box-shadow:0 12px 32px rgba(20,20,19,.07);border-color:#dcd9cb}
+.metric-card:hover::after{transform:translateX(100%)}
+.metric-label{font-family:var(--display);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:var(--mid);margin-bottom:14px}
+.metric-value{font-family:var(--display);font-weight:600;font-size:34px;letter-spacing:-.02em;line-height:1;color:var(--dark)}
+.metric-unit{font-family:var(--serif);font-size:14px;color:var(--mid);margin-left:5px;font-weight:400}
+.metric-trend{font-family:var(--mono);font-size:11px;color:var(--mid);margin-top:10px}
+
+/* ===== Panels ===== */
+.panel{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:30px}
+.panel-title{font-family:var(--display);font-size:16px;font-weight:600;color:var(--dark);display:flex;align-items:center;justify-content:space-between}
+.panel-tag{font-family:var(--serif);font-style:italic;font-size:13px;color:var(--mid);font-weight:400}
+.panel-sub{font-family:var(--serif);font-size:13px;color:var(--mid);margin:6px 0 22px;font-style:italic}
+.chart{width:100%;height:340px}
+
+.two-col{display:grid;grid-template-columns:2fr 1fr;gap:24px}
+.two-col-eq{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+
+/* ===== Health ===== */
+.health-num{font-family:var(--display);font-weight:600;font-size:78px;letter-spacing:-.04em;line-height:1;color:var(--green);margin:18px 0 0;transition:color .4s}
+.health-num small{font-family:var(--serif);font-style:italic;font-size:18px;color:var(--mid);margin-left:8px;font-weight:400}
+.health-bar{height:6px;background:var(--line);border-radius:999px;overflow:hidden;margin:18px 0 14px;position:relative}
+.health-bar-fill{height:100%;background:var(--green);border-radius:999px;width:0%;transition:width .6s cubic-bezier(.4,0,.2,1),background-color .4s}
+.health-status{font-family:var(--display);font-weight:500;font-size:14px;color:var(--dark)}
+.health-action{font-family:var(--serif);font-style:italic;font-size:13px;color:var(--mid);margin-top:4px}
+
+.section-divider{
+  font-family:var(--display);font-size:11px;text-transform:uppercase;letter-spacing:.14em;
+  color:var(--mid);font-weight:500;margin:32px 0 12px;display:flex;align-items:center;gap:10px;
+}
+.section-divider::after{content:'';flex:1;height:1px;background:var(--line)}
+.event-list{list-style:none;max-height:240px;overflow-y:auto}
+.event-item{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid var(--line);font-family:var(--serif);font-size:13px;align-items:baseline}
+.event-item:last-child{border-bottom:0}
+.event-time{font-family:var(--mono);font-size:11px;color:var(--mid);flex-shrink:0;width:60px}
+.event-tag{font-family:var(--display);font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:4px}
+.event-tag.ok{background:var(--green-soft);color:var(--green)}
+.event-tag.warn{background:var(--orange-soft);color:var(--orange)}
+.event-tag.danger{background:var(--red-soft);color:var(--red)}
+.event-tag.info{background:var(--blue-soft);color:var(--blue)}
+
+/* ===== Motor control ===== */
+.ctrl-row{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.ctrl-block{
+  flex:1;min-width:240px;
+  background:var(--paper);border:1px solid var(--line);border-radius:14px;
+  padding:20px;
+}
+.ctrl-label{font-family:var(--display);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--mid);margin-bottom:10px;font-weight:600}
+.ctrl-value{font-family:var(--display);font-weight:600;font-size:28px;color:var(--dark);letter-spacing:-.02em;line-height:1}
+.ctrl-value small{font-family:var(--serif);font-style:italic;font-size:14px;color:var(--mid);margin-left:6px;font-weight:400}
+.slider-wrap{margin-top:16px}
+.slider{
+  -webkit-appearance:none;appearance:none;width:100%;height:6px;
+  background:var(--line);border-radius:999px;outline:none;cursor:pointer;
+}
+.slider::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;width:22px;height:22px;
+  background:var(--orange);border-radius:50%;cursor:pointer;
+  border:3px solid #fff;box-shadow:0 2px 8px rgba(217,119,87,.4);
+  transition:transform .15s;
+}
+.slider::-webkit-slider-thumb:hover{transform:scale(1.15)}
+.slider::-moz-range-thumb{width:22px;height:22px;background:var(--orange);border-radius:50%;cursor:pointer;border:3px solid #fff}
+.slider-meta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--mid);margin-top:8px}
+.mode-toggle{display:flex;gap:6px;background:var(--card);padding:4px;border-radius:10px;border:1px solid var(--line)}
+.mode-btn{
+  flex:1;padding:10px 14px;border-radius:7px;background:transparent;border:none;
+  font-family:var(--display);font-size:12px;font-weight:500;color:var(--mid);
+  cursor:pointer;transition:all .2s;text-align:center;
+}
+.mode-btn.active{background:var(--orange);color:#fff;box-shadow:0 2px 6px rgba(217,119,87,.3)}
+.ctrl-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+
+/* ===== Sensor matrix ===== */
+.sensor-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
+.sensor-card{
+  background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:18px;cursor:pointer;transition:all .2s;position:relative;
+}
+.sensor-card:hover{transform:translateY(-2px);border-color:var(--mid);box-shadow:0 6px 20px rgba(20,20,19,.05)}
+.sensor-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.sensor-status{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;flex-shrink:0}
+.sensor-status.warn{background:var(--orange)}
+.sensor-status.off{background:var(--mid);animation:none}
+.sensor-name{font-family:var(--display);font-weight:600;font-size:13px;letter-spacing:-.01em}
+.sensor-model{font-family:var(--mono);font-size:10px;color:var(--mid);margin-bottom:8px}
+.sensor-val{font-family:var(--display);font-weight:600;font-size:20px;color:var(--dark);letter-spacing:-.02em;line-height:1}
+.sensor-val small{font-family:var(--serif);font-style:italic;font-size:11px;color:var(--mid);margin-left:4px;font-weight:400}
+.sensor-meta{font-family:var(--mono);font-size:10px;color:var(--mid);margin-top:8px}
+
+/* ===== Model & HIL panels ===== */
+.kv-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
+.kv-row:last-child{border-bottom:0}
+.kv-key{font-family:var(--display);font-weight:500;color:var(--mid);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.kv-val{font-family:var(--mono);font-size:13px;color:var(--dark);font-weight:500}
+.kv-val.accent{color:var(--orange)}
+.kv-val.green{color:var(--green)}
+
+.fault-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:14px}
+.fault-btn{
+  padding:14px;border-radius:10px;background:var(--paper);border:1px solid var(--line);
+  font-family:var(--display);font-size:12px;font-weight:500;color:var(--dark);
+  cursor:pointer;transition:all .2s;text-align:left;
+}
+.fault-btn:hover{border-color:var(--orange);background:var(--orange-soft)}
+.fault-btn small{display:block;font-family:var(--serif);font-style:italic;font-size:11px;color:var(--mid);font-weight:400;margin-top:4px}
+
+.donut-wrap{position:relative;display:flex;align-items:center;justify-content:center;height:160px;margin:8px 0}
+.donut-center{position:absolute;text-align:center}
+.donut-num{font-family:var(--display);font-weight:600;font-size:30px;color:var(--dark);letter-spacing:-.02em;line-height:1}
+.donut-lbl{font-family:var(--display);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--mid);margin-top:4px}
+
+/* ===== Register table ===== */
+.reg-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+.reg-block{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;transition:all .2s}
+.reg-block:hover{border-color:var(--mid)}
+.reg-range{font-family:var(--mono);font-size:11px;color:var(--orange);font-weight:500;margin-bottom:6px}
+.reg-name{font-family:var(--display);font-weight:600;font-size:14px;margin-bottom:4px}
+.reg-desc{font-family:var(--serif);font-style:italic;font-size:12px;color:var(--mid);margin-bottom:12px;line-height:1.5}
+.reg-list{list-style:none;font-family:var(--mono);font-size:11px;line-height:1.7;color:var(--dark)}
+.reg-list li{display:flex;justify-content:space-between;padding:3px 0}
+.reg-list .addr{color:var(--mid)}
+
+/* ===== Architecture ===== */
+.arch-svg{width:100%;height:auto;background:var(--paper);border-radius:18px;border:1px solid var(--line);padding:24px}
+.arch-svg text{font-family:var(--display);fill:var(--dark)}
+.arch-node rect{transition:all .25s;cursor:pointer}
+.arch-node:hover rect{filter:drop-shadow(0 4px 12px rgba(217,119,87,.3))}
+
+/* ===== Timeline ===== */
+.timeline{position:relative;padding-left:32px}
+.timeline::before{content:'';position:absolute;left:7px;top:8px;bottom:8px;width:2px;background:var(--line)}
+.tl-item{position:relative;padding-bottom:32px}
+.tl-item:last-child{padding-bottom:0}
+.tl-dot{position:absolute;left:-32px;top:6px;width:16px;height:16px;border-radius:50%;background:var(--card);border:2px solid var(--line);transition:all .3s}
+.tl-item.done .tl-dot{background:var(--green);border-color:var(--green)}
+.tl-item.active .tl-dot{background:var(--orange);border-color:var(--orange);box-shadow:0 0 0 6px rgba(217,119,87,.18)}
+.tl-date{font-family:var(--mono);font-size:11px;color:var(--mid);margin-bottom:4px;letter-spacing:.04em}
+.tl-title{font-family:var(--display);font-weight:600;font-size:15px;margin-bottom:4px}
+.tl-item.active .tl-title{color:var(--orange)}
+.tl-desc{font-family:var(--serif);font-size:13px;color:var(--mid);font-style:italic;line-height:1.55}
+
+/* ===== Action bar ===== */
+.action-bar{
+  display:flex;flex-wrap:wrap;gap:10px;padding:20px 24px;
+  background:var(--paper);border-radius:16px;border:1px solid var(--line);
+}
+.action-label{font-family:var(--display);font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--mid);margin-right:8px;align-self:center;font-weight:600}
+.btn{
+  font-family:var(--display);font-weight:500;font-size:13px;
+  padding:10px 18px;border-radius:10px;border:1px solid var(--line);
+  background:var(--card);color:var(--dark);cursor:pointer;
+  transition:all .15s;letter-spacing:.01em;display:inline-flex;align-items:center;gap:6px;
+}
+.btn:hover{border-color:var(--mid);transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn-primary{background:var(--orange);color:#fff;border-color:var(--orange)}
+.btn-primary:hover{background:#c66848;border-color:#c66848}
+.btn-danger{background:var(--red);color:#fff;border-color:var(--red)}
+.btn-danger:hover{background:#a8443f;border-color:#a8443f}
+.btn-ghost{background:transparent;border-color:var(--line)}
+.btn-sm{padding:7px 12px;font-size:12px}
+
+/* ===== Footer ===== */
+.footer{
+  font-family:var(--mono);font-size:11px;color:var(--mid);
+  padding:32px 0 48px;border-top:1px solid var(--line);
+  display:grid;grid-template-columns:repeat(4,1fr);gap:24px;
+}
+.footer strong{font-weight:500;color:var(--dark);display:block;font-family:var(--display);font-size:10px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+
+/* ===== Demo badge ===== */
+.demo-badge{
+  position:fixed;top:78px;right:24px;z-index:60;
+  background:var(--blue-soft);color:var(--blue);
+  font-family:var(--display);font-size:10px;font-weight:600;
+  padding:6px 12px;border-radius:999px;letter-spacing:.08em;text-transform:uppercase;
+  display:none;
+}
+.demo-badge.show{display:inline-block}
+
+/* ===== Modal ===== */
+.modal-bg{position:fixed;inset:0;background:rgba(20,20,19,.45);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:1000;animation:fade .2s ease-out}
+.modal-bg.active{display:flex}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.modal{background:var(--card);border-radius:22px;padding:36px;max-width:520px;width:90%;box-shadow:0 30px 80px rgba(20,20,19,.18);animation:slide .3s cubic-bezier(.2,.8,.2,1)}
+@keyframes slide{from{transform:translateY(28px) scale(.96);opacity:0}to{transform:none;opacity:1}}
+.modal-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:22px;font-family:var(--display);font-weight:600;font-size:22px}
+.modal-icon.info{background:var(--blue-soft);color:var(--blue)}
+.modal-icon.warn{background:var(--orange-soft);color:var(--orange)}
+.modal-icon.danger{background:var(--red-soft);color:var(--red)}
+.modal-icon.success{background:var(--green-soft);color:var(--green)}
+.modal-icon.neutral{background:var(--paper);color:var(--mid)}
+.modal-title{font-family:var(--display);font-weight:600;font-size:22px;letter-spacing:-.01em;margin-bottom:10px}
+.modal-body{font-family:var(--serif);font-size:15px;color:var(--dark);line-height:1.65;margin-bottom:20px}
+.modal-meta{font-family:var(--mono);font-size:12px;color:var(--dark);background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:22px;white-space:pre-wrap;line-height:1.6}
+.modal-progress{height:4px;background:var(--line);border-radius:999px;overflow:hidden;margin-bottom:18px}
+.modal-progress-fill{height:100%;background:var(--orange);width:0;transition:width .3s}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end}
+
+/* ===== Reveal animation ===== */
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .7s ease-out,transform .7s cubic-bezier(.2,.8,.2,1)}
+.reveal.in{opacity:1;transform:none}
+
+/* ===== Responsive ===== */
+@media (max-width:1100px){
+  .metric-grid,.sensor-grid{grid-template-columns:repeat(3,1fr)}
+  .reg-grid{grid-template-columns:repeat(2,1fr)}
+  .two-col,.two-col-eq,.three-col{grid-template-columns:1fr}
+  .footer{grid-template-columns:repeat(2,1fr)}
+  .hero-title{font-size:48px}
+}
+@media (max-width:680px){
+  .container{padding:0 20px}
+  .topbar{padding:14px 20px}
+  .top-nav{display:none}
+  .metric-grid,.sensor-grid{grid-template-columns:repeat(2,1fr)}
+  .reg-grid{grid-template-columns:1fr}
+  .hero-title{font-size:36px}
+  .sec-title{font-size:26px}
+  .footer{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark">算</div>
+    <div>
+      <div class="brand-text">算控融合监测平台</div>
+      <div class="brand-sub">Cyber-Physical Diagnostic System</div>
+    </div>
+  </div>
+  <nav class="top-nav">
+    <a onclick="document.getElementById('s-overview').scrollIntoView()">总览</a>
+    <a onclick="document.getElementById('s-control').scrollIntoView()">控制</a>
+    <a onclick="document.getElementById('s-sensors').scrollIntoView()">传感器</a>
+    <a onclick="document.getElementById('s-model').scrollIntoView()">模型</a>
+    <a onclick="document.getElementById('s-register').scrollIntoView()">寄存器</a>
+    <a onclick="document.getElementById('s-arch').scrollIntoView()">架构</a>
+    <a onclick="document.getElementById('s-timeline').scrollIntoView()">里程碑</a>
+  </nav>
+  <div class="top-right">
+    <span class="clock" id="clock">--:--:--</span>
+    <span class="status-pill" id="connPill"><span class="status-dot"></span><span id="connText">在线</span></span>
+  </div>
+</header>
+
+<div class="demo-badge" id="demoBadge">Demo · Mock Data</div>
+
+<!-- ============== HERO ============== -->
+<section class="hero">
+  <div class="container hero-inner reveal">
+    <div class="eyebrow">National PLC · Edge AI · Closed-loop Control</div>
+    <h1 class="hero-title">面向先进制造的<br><em>算控融合</em>全栈智控平台</h1>
+    <p class="hero-sub">国产化 PLC + 边缘大模型推理 + 自适应分级闭环控制 — 把高价值装备的健康管理从"事后报警"推向"主动避险"。</p>
+    <div class="hero-pills">
+      <span class="hero-pill"><span class="dot o"></span>HIL 半实物仿真平台</span>
+      <span class="hero-pill"><span class="dot b"></span>两阶段解耦 + 时空特征融合</span>
+      <span class="hero-pill"><span class="dot g"></span>边缘轻量化推理引擎</span>
+      <span class="hero-pill"><span class="dot d"></span>Modbus TCP · IT-OT 闭环</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============== 实时总览 ============== -->
+<section id="s-overview">
+  <div class="container">
+    <div class="sec-head reveal">
+      <div>
+        <div class="sec-num">01 · OVERVIEW</div>
+        <h2 class="sec-title">实时监测总览</h2>
+        <p class="sec-sub">PLC 4x 寄存器经由 Python → SQLite → Flask API 实时回传至前端，1 Hz 刷新。</p>
+      </div>
+      <div class="sec-meta">last update <span id="lastUpd">—</span></div>
+    </div>
+
+    <div class="metric-grid reveal">
+      <div class="metric-card"><div class="metric-label">Servo RPM</div><div class="metric-value"><span id="m_rpm">—</span><span class="metric-unit">rpm</span></div><div class="metric-trend">4x0 · servo_speed</div></div>
+      <div class="metric-card"><div class="metric-label">Current</div><div class="metric-value"><span id="m_current">—</span><span class="metric-unit">mA</span></div><div class="metric-trend">4x1 · current</div></div>
+      <div class="metric-card"><div class="metric-label">Temperature</div><div class="metric-value"><span id="m_temp">—</span><span class="metric-unit">°C</span></div><div class="metric-trend">4x2 · temp_x10</div></div>
+      <div class="metric-card"><div class="metric-label">Health</div><div class="metric-value"><span id="m_health">—</span><span class="metric-unit">/100</span></div><div class="metric-trend">4x3 · model_out</div></div>
+      <div class="metric-card"><div class="metric-label">Alarm Level</div><div class="metric-value"><span id="m_alarm">—</span></div><div class="metric-trend">4x4 · alarm_level</div></div>
+      <div class="metric-card"><div class="metric-label">Vibration RMS</div><div class="metric-value"><span id="m_vib">—</span><span class="metric-unit">g</span></div><div class="metric-trend">4x5 · vib_rms_x100</div></div>
+    </div>
+
+    <div class="two-col reveal" style="margin-top:24px">
+      <div class="panel">
+        <div class="panel-title">运行趋势 <span class="panel-tag">last 60 frames</span></div>
+        <p class="panel-sub">Servo motor real-time performance</p>
+        <div id="trendChart" class="chart"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">健康度评估</div>
+        <p class="panel-sub">Edge inference · Jetson</p>
+        <div class="health-num" id="healthNum">—<small>/100</small></div>
+        <div class="health-bar"><div class="health-bar-fill" id="healthBar"></div></div>
+        <div class="health-status" id="healthStatus">等待模型评估</div>
+        <div class="health-action" id="healthAction">建议动作：—</div>
+        <div class="section-divider">事件日志 · Event Log</div>
+        <ul class="event-list" id="eventList"></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== 电机控制 + 振动诊断 ============== -->
+<section id="s-control">
+  <div class="container">
+    <div class="sec-head reveal">
+      <div>
+        <div class="sec-num">02 · CONTROL</div>
+        <h2 class="sec-title">电机控制台</h2>
+        <p class="sec-sub">通过前端直接下发速度、模式与启停指令至 PLC。所有指令落到 4x150~4x179 模型结果区，由 ST 控制流接管执行。</p>
+      </div>
+    </div>
+
+    <div class="two-col-eq reveal">
+      <div class="panel">
+        <div class="panel-title">伺服电机控制 <span class="panel-tag">INVT · EtherCAT</span></div>
+        <p class="panel-sub">Servo control · target 0–3000 rpm</p>
+
+        <div class="ctrl-row" style="margin-top:18px">
+          <div class="ctrl-block" style="flex:2">
+            <div class="ctrl-label">Target Speed</div>
+            <div class="ctrl-value"><span id="targetRpm">1500</span><small>rpm</small></div>
+            <div class="slider-wrap">
+              <input type="range" min="0" max="3000" value="1500" step="50" class="slider" id="speedSlider">
+              <div class="slider-meta"><span>0</span><span>1500</span><span>3000</span></div>
+            </div>
+          </div>
+          <div class="ctrl-block">
+            <div class="ctrl-label">Run State</div>
+            <div class="ctrl-value" id="runState" style="color:var(--green)">RUNNING</div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--mid);margin-top:8px">since 14:21:08</div>
+          </div>
+        </div>
+
+        <div class="ctrl-row" style="margin-top:14px">
+          <div class="ctrl-block">
+            <div class="ctrl-label">Velocity Mode</div>
+            <div class="mode-toggle" style="margin-top:10px" id="modeToggle">
+              <button class="mode-btn active" data-mode="3">Mode 3 · 平滑变速</button>
+              <button class="mode-btn" data-mode="8">Mode 8 · 切换接力</button>
+            </div>
+          </div>
+          <div class="ctrl-block">
+            <div class="ctrl-label">Buffer Mode</div>
+            <div class="mode-toggle" style="margin-top:10px" id="bufferToggle">
+              <button class="mode-btn active" data-buf="abort">MC_Aborting</button>
+              <button class="mode-btn" data-buf="buffer">MC_Buffered</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ctrl-actions">
+          <button class="btn btn-primary" onclick="applySpeed()">下发速度指令</button>
+          <button class="btn" onclick="toggleRun()">启动 / 停止</button>
+          <button class="btn" onclick="resetMotor()">复位 (MC_Reset)</button>
+          <button class="btn btn-danger" onclick="showEmergencyStopModal()">紧急停机</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">振动诊断 <span class="panel-tag">RMS · Peak · Kurtosis</span></div>
+        <p class="panel-sub">Bearing vibration · last 30 frames</p>
+        <div id="vibChart" class="chart" style="height:240px"></div>
+        <div class="kv-row" style="margin-top:14px"><span class="kv-key">RMS</span><span class="kv-val" id="vibRms">—</span></div>
+        <div class="kv-row"><span class="kv-key">Peak</span><span class="kv-val" id="vibPeak">—</span></div>
+        <div class="kv-row"><span class="kv-key">Kurtosis</span><span class="kv-val" id="vibKurt">—</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== 传感器矩阵 ============== -->
+<section id="s-sensors" class="tight">
+  <div class="container">
+    <div class="sec-head reveal">
+      <div>
+        <div class="sec-num">03 · SENSORS</div>
+        <h2 class="sec-title">传感器在线状态</h2>
+        <p class="sec-sub">LubanCat 作为统一采集网关。所有传感器原始数据本地落盘 → 特征提取 → 写入 PLC 4x100~4x149。</p>
+      </div>
+      <div class="sec-meta">6 sensors · 1 gateway</div>
+    </div>
+
+    <div class="sensor-grid reveal">
+      <div class="sensor-card" onclick="showSensorDetail('ADXL345','三轴加速度')">
+        <div class="sensor-head"><span class="sensor-status"></span><span class="sensor-name">ADXL345</span></div>
+        <div class="sensor-model">三轴加速度 · I2C · ±16g</div>
+        <div class="sensor-val" id="snr_adxl345">1.02<small>g</small></div>
+        <div class="sensor-meta">100 Hz · 4x105</div>
+      </div>
+      <div class="sensor-card" onclick="showSensorDetail('ADXL1002','高带宽加速度')">
+        <div class="sensor-head"><span class="sensor-status"></span><span class="sensor-name">ADXL1002</span></div>
+        <div class="sensor-model">高带宽加速度 · BW 11kHz</div>
+        <div class="sensor-val" id="snr_adxl1002">2.18<small>g</small></div>
+        <div class="sensor-meta">10 kHz · 4x108-109</div>
+      </div>
+      <div class="sensor-card" onclick="showSensorDetail('ACS712','霍尔电流')">
+        <div class="sensor-head"><span class="sensor-status"></span><span class="sensor-name">ACS712-20A</span></div>
+        <div class="sensor-model">霍尔电流模块 · ±20A</div>
+        <div class="sensor-val" id="snr_acs712">767<small>mA</small></div>
+        <div class="sensor-meta">1 kHz · 4x100-102</div>
+      </div>
+      <div class="sensor-card" onclick="showSensorDetail('PT100','温度')">
+        <div class="sensor-head"><span class="sensor-status"></span><span class="sensor-name">PT100 + MAX31865</span></div>
+        <div class="sensor-model">温度 · SPI · 铂电阻</div>
+        <div class="sensor-val" id="snr_pt100">34.8<small>°C</small></div>
+        <div class="sensor-meta">1 Hz · 4x103-104</div>
+      </div>
+      <div class="sensor-card" onclick="showSensorDetail('INMP441','MEMS 麦克风')">
+        <div class="sensor-head"><span class="sensor-status warn"></span><span class="sensor-name">INMP441</span></div>
+        <div class="sensor-model">MEMS 麦克风 · I2S</div>
+        <div class="sensor-val" id="snr_inmp441">—<small>dB</small></div>
+        <div class="sensor-meta">16 kHz · 4x110-113</div>
+      </div>
+      <div class="sensor-card" onclick="showSensorDetail('Grating','光栅')">
+        <div class="sensor-head"><span class="sensor-status off"></span><span class="sensor-name">Grating Encoder</span></div>
+        <div class="sensor-model">光栅 · 滑台位置反馈</div>
+        <div class="sensor-val" id="snr_grating">—<small>mm</small></div>
+        <div class="sensor-meta">offline · 4x114-116</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== 模型推理 + HIL 仿真 + 数据集 ============== -->
+<section id="s-model">
+  <div class="container">
+    <div class="sec-head reveal">
+      <div>
+        <div class="sec-num">04 · INFERENCE</div>
+        <h2 class="sec-title">模型推理 · HIL 仿真 · 数据集</h2>
+        <p class="sec-sub">两阶段解耦预测架构 + 物理约束损失 + 国产 NPU 轻量化部署。</p>
+      </div>
+    </div>
+
+    <div class="three-col reveal">
+      <!-- 模型推理 -->
+      <div class="panel">
+        <div class="panel-title">边缘推理引擎 <span class="panel-tag">Jetson</span></div>
+        <p class="panel-sub">Multi-scale 1D-CNN + Transformer</p>
+        <div class="donut-wrap">
+          <div id="modelDonut" style="width:160px;height:160px"></div>
+          <div class="donut-center"><div class="donut-num" id="confNum">94</div><div class="donut-lbl">Confidence</div></div>
+        </div>
+        <div class="kv-row"><span class="kv-key">Model</span><span class="kv-val accent">RUL-T-v0.3</span></div>
+        <div class="kv-row"><span class="kv-key">Accuracy</span><span class="kv-val green">94.2%</span></div>
+        <div class="kv-row"><span class="kv-key">Inference Latency</span><span class="kv-val">12.4 ms</span></div>
+        <div class="kv-row"><span class="kv-key">Quantization</span><span class="kv-val">FP16 · ONNX</span></div>
+        <div class="kv-row"><span class="kv-key">Predicted RUL</span><span class="kv-val accent" id="rulVal">428 h</span></div>
+        <div class="ctrl-actions">
+          <button class="btn btn-sm" onclick="reloadModel()">重新加载模型</button>
+          <button class="btn btn-sm btn-ghost" onclick="showModelArchModal()">查看架构</button>
+        </div>
+      </div>
+
+      <!-- HIL 仿真 -->
+      <div class="panel">
+        <div class="panel-title">HIL 仿真控制台 <span class="panel-tag">Hardware-in-loop</span></div>
+        <p class="panel-sub">虚实联动 · 故障注入 · 工况复现</p>
+        <div class="kv-row" style="margin-top:14px"><span class="kv-key">Working Mode</span><span class="kv-val accent" id="hilMode">稳定运行</span></div>
+        <div class="kv-row"><span class="kv-key">Sample Rate</span><span class="kv-val">10 kHz</span></div>
+        <div class="kv-row"><span class="kv-key">Injected Fault</span><span class="kv-val" id="hilFault">none</span></div>
+        <p style="font-family:var(--display);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--mid);margin-top:18px;font-weight:600">故障注入</p>
+        <div class="fault-grid">
+          <button class="fault-btn" onclick="injectFault('inner','轴承内圈剥落')">轴承内圈剥落<small>BPFI 模式</small></button>
+          <button class="fault-btn" onclick="injectFault('outer','轴承外圈剥落')">轴承外圈剥落<small>BPFO 模式</small></button>
+          <button class="fault-btn" onclick="injectFault('imbalance','转子不平衡')">转子不平衡<small>1× 频率分量</small></button>
+          <button class="fault-btn" onclick="injectFault('misalign','轴系不对中')">轴系不对中<small>2× 频率分量</small></button>
+        </div>
+        <div class="ctrl-actions" style="margin-top:14px">
+          <button class="btn btn-sm" onclick="clearFault()">清除故障</button>
+          <button class="btn btn-sm btn-ghost" onclick="generateDataset()">生成训练数据</button>
+        </div>
+      </div>
+
+      <!-- 数据集 -->
+      <div class="panel">
+        <div class="panel-title">训练数据集 <span class="panel-tag">SQLite · CSV</span></div>
+        <p class="panel-sub">Lifecycle data lake</p>
+        <div id="datasetChart" style="width:100%;height:160px;margin:8px 0"></div>
+        <div class="kv-row"><span class="kv-key">Total Samples</span><span class="kv-val" id="dsTotal">128,456</span></div>
+        <div class="kv-row"><span class="kv-key">Working Conditions</span><span class="kv-val">12</span></div>
+        <div class="kv-row"><span class="kv-key">Fault Coverage</span><span class="kv-val green">8 / 8</span></div>
+        <div class="kv-row"><span class="kv-key">Last Export</span><span class="kv-val" id="dsLast">2026-04-17 14:08</span></div>
+        <div class="kv-row"><span class="kv-key">Storage</span><span class="kv-val">/home/matribox/plc_data.db</span></div>
+        <div class="ctrl-actions">
+          <button class="btn btn-sm" onclick="exportCsv()">导出宽表 CSV</button>
+          <button class="btn btn-sm btn-ghost" onclick="showLabelModal()">标签策略</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== Modbus 寄存器 ============== -->
+<section id="s-register">
+  <div class="container">
+    <div class="sec-head reveal">
+      <div>
+        <div class="sec-num">05 · REGISTER MAP</div>
+        <h2 class="sec-title">Modbus 4x 寄存器实时映射</h2>
+        <p class="sec-sub">五大分区固定地址，避免临时占用与命名冲突。所有字段统一英文小写下划线 + 缩放后整型存储。</p>
+      </div>
+    </div>
+
+    <div class="reg-grid reveal">
+      <div class="reg-block">
+        <div class="reg-range">4x0 — 4x49</div>
+        <div class="reg-name">调试 / 模拟数据区</div>
+        <div class="reg-desc">当前阶段的模拟值与脚本联调区域。</div>
+        <ul class="reg-list">
+          <li><span class="addr">4x0</span><span>rpm</span></li>
+          <li><span class="addr">4x1</span><span>current</span></li>
+          <li><span class="addr">4x2</span><span>temp_x10</span></li>
+          <li><span class="addr">4x3</span><span>health</span></li>
+          <li><span class="addr">4x4</span><span>alarm</span></li>
+          <li><span class="addr">4x5</span><span>vib_rms_x100</span></li>
+        </ul>
+      </div>
+      <div class="reg-block">
+        <div class="reg-range">4x50 — 4x99</div>
+        <div class="reg-name">电机 · 执行机构反馈</div>
+        <div class="reg-desc">伺服 / 步进 / 滑台的真实结构化反馈。</div>
+        <ul class="reg-list">
+          <li><span class="addr">4x50</span><span>servo_speed_rpm</span></li>
+          <li><span class="addr">4x51</span><span>servo_current_ma</span></li>
+          <li><span class="addr">4x52-53</span><span>servo_position</span></li>
+          <li><span class="addr">4x54</span><span>servo_torque</span></li>
+          <li><span class="addr">4x58</span><span>axis_run_state</span></li>
+          <li><span class="addr">4x59</span><span>axis_fault_code</span></li>
+        </ul>
+      </div>
+      <div class="reg-block">
+        <div class="reg-range">4x100 — 4x149</div>
+        <div class="reg-name">真实传感器特征</div>
+        <div class="reg-desc">LubanCat 提取的低维特征。模型主输入。</div>
+        <ul class="reg-list">
+          <li><span class="addr">4x100</span><span>bearing_current_mean</span></li>
+          <li><span class="addr">4x103</span><span>bearing_temp_x10</span></li>
+          <li><span class="addr">4x105</span><span>vib_rms_x100</span></li>
+          <li><span class="addr">4x107</span><span>vib_kurtosis_x100</span></li>
+          <li><span class="addr">4x110</span><span>audio_energy_x100</span></li>
+          <li><span class="addr">4x114</span><span>grating_position</span></li>
+        </ul>
+      </div>
+      <div class="reg-block">
+        <div class="reg-range">4x150 — 4x179</div>
+        <div class="reg-name">模型推理结果</div>
+        <div class="reg-desc">Jetson 回写区。PLC 控制策略仅读这一段。</div>
+        <ul class="reg-list">
+          <li><span class="addr">4x150</span><span>health_score</span></li>
+          <li><span class="addr">4x151</span><span>alarm_level</span></li>
+          <li><span class="addr">4x152</span><span>stop_flag</span></li>
+          <li><span class="addr">4x153</span><span>model_valid</span></li>
+          <li><span class="addr">4x155</span><span>confidence_x100</span></li>
+          <li><span class="addr">4x158</span><span>recommend_action</span></li>
+        </ul>
+      </div>
+      <div class="reg-block">
+        <div class="reg-range">4x180 — 4x199</div>
+        <div class="reg-name">系统心跳 · 运维</div>
+        <div class="reg-desc">各子系统在线状态与最近更新时间。</div>
+        <ul class="reg-list">
+          <li><span class="addr">4x180</span><span>lubancat_online</span></li>
+          <li><span class="addr">4x181</span><span>jetson_online</span></li>
+          <li><span class="addr">4x182</span><span>collector_status</span></li>
+          <li><span class="addr">4x183</span><span>api_status</span></li>
+          <li><span class="addr">4x185</span><span>last_update_sec</span></li>
+          <li><span class="addr">4x186</span><span>data_source_mode</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== 架构图 ============== -->
+<section id="s-arch">
+  <div class="container">
+    <div class="sec-head reveal">
+      <div>
+        <div class="sec-num">06 · ARCHITECTURE</div>
+        <h2 class="sec-title">系统数据流</h2>
+        <p class="sec-sub">从传感器到控制指令的完整闭环。点击节点查看详情。</p>
+      </div>
+    </div>
+    <div class="reveal">
+      <svg class="arch-svg" viewBox="0 0 1200 360" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L9,3 z" fill="#b0aea5"/>
+          </marker>
+          <marker id="arrowO" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L9,3 z" fill="#d97757"/>
+          </marker>
+        </defs>
+
+        <!-- nodes -->
+        <g class="arch-node" onclick="showNodeDetail('Sensors')">
+          <rect x="20" y="120" width="160" height="100" rx="14" fill="#ffffff" stroke="#e8e6dc"/>
+          <text x="100" y="155" text-anchor="middle" font-size="14" font-weight="600">Sensors</text>
+          <text x="100" y="178" text-anchor="middle" font-size="11" fill="#b0aea5" font-family="Lora" font-style="italic">ADXL · ACS712</text>
+          <text x="100" y="195" text-anchor="middle" font-size="11" fill="#b0aea5" font-family="Lora" font-style="italic">PT100 · INMP441</text>
+        </g>
+
+        <g class="arch-node" onclick="showNodeDetail('LubanCat')">
+          <rect x="220" y="120" width="160" height="100" rx="14" fill="#ffffff" stroke="#e8e6dc"/>
+          <text x="300" y="155" text-anchor="middle" font-size="14" font-weight="600">LubanCat</text>
+          <text x="300" y="178" text-anchor="middle" font-size="11" fill="#b0aea5" font-family="Lora" font-style="italic">采集网关</text>
+          <text x="300" y="195" text-anchor="middle" font-size="11" fill="#b0aea5" font-family="Lora" font-style="italic">特征提取</text>
+        </g>
+
+        <g class="arch-node" onclick="showNodeDetail('PLC')">
+          <rect x="420" y="40" width="160" height="100" rx="14" fill="#ffffff" stroke="#d97757" stroke-width="2"/>
+          <text x="500" y="75" text-anchor="middle" font-size="14" font-weight="600" fill="#d97757">MX6300 PLC</text>
+          <text x="500" y="98" text-anchor="middle" font-size="11" fill="#b0aea5" font-family="Lora" font-style="italic">ST 控制</text>
+          <text x="500" y="115" text-anchor="middle" font-size="11" fill="#b0aea5" font-family="Lora" font-style="italic">EtherCAT</text>
+        </g>
+
+        <g class="arch-node" onclick="showNodeDetail('PLCLinux')">
+          <rect x="420" y="200" width="160" height="100" rx="14" fill="#ffffff" stroke="#e8e6dc"/>
+          <text x="500" y="235" text-anchor="middle" font-size="14" font-weight="600">PLC Linux</text>
+          <text x="500" y="258" text-anchor="middle" font-size="11" fill="#b0aea5" font-family="Lora" font-style="italic">Python · SQLite</text>
+          <text x="500" y="275" text-anchor="middle" font-size="11" fill="#b0aea5" font-family="Lora" font-style="italic">Flask API</text>
+        </g>
+
+        <g class="arch-node" onclick="showNodeDetail('Jetson')">
+          <rect x="620" y="120" width="160" height="100" rx="14" fill="#ffffff" stroke="#e8e6dc"/>
+          <text x="700" y="155" text-anchor="middle" font-size="14" font-weight="600">Jetson</text>
+          <text x="700" y="178" text-anchor="middle" font-size="11" fill="#b0aea5" font-family="Lora" font-style="italic">Edge Inference</text>
+          <text x="700" y="195" text-anchor="middle" font-size="11" fill="#b0aea5" font-family="Lora" font-style="italic">CNN + Transformer</text>
+        </g>
+
+        <g class="arch-node" onclick="showNodeDetail('Frontend')">
+          <rect x="820" y="40" width="160" height="100" rx="14" fill="#ffffff" stroke="#e8e6dc"/>
+          <text x="900" y="75" text-anchor="middle" font-size="14" font-weight="600">Frontend</text>
+          <text x="900" y="98" text-anchor="middle" font-size="11" fill="#b0aea5" font-family="Lora" font-style="italic">大屏 / 弹窗</text>
+          <text x="900" y="115" text-anchor="middle" font-size="11" fill="#b0aea5" font-family="Lora" font-style="italic">控制下发</text>
+        </g>
+
+        <g class="arch-node" onclick="showNodeDetail('Actuator')">
+          <rect x="820" y="200" width="160" height="100" rx="14" fill="#ffffff" stroke="#e8e6dc"/>
+          <text x="900" y="235" text-anchor="middle" font-size="14" font-weight="600">Actuator</text>
+          <text x="900" y="258" text-anchor="middle" font-size="11" fill="#b0aea5" font-family="Lora" font-style="italic">伺服 / 步进</text>
+          <text x="900" y="275" text-anchor="middle" font-size="11" fill="#b0aea5" font-family="Lora" font-style="italic">滑台 · 轴承</text>
+        </g>
+
+        <g class="arch-node" onclick="showNodeDetail('Cloud')">
+          <rect x="1020" y="120" width="160" height="100" rx="14" fill="#ffffff" stroke="#e8e6dc" stroke-dasharray="4 4"/>
+          <text x="1100" y="155" text-anchor="middle" font-size="14" font-weight="600">Cloud (opt.)</text>
+          <text x="1100" y="178" text-anchor="middle" font-size="11" fill="#b0aea5" font-family="Lora" font-style="italic">长期归档</text>
+          <text x="1100" y="195" text-anchor="middle" font-size="11" fill="#b0aea5" font-family="Lora" font-style="italic">远程运维</text>
+        </g>
+
+        <!-- arrows -->
+        <line x1="180" y1="170" x2="220" y2="170" stroke="#b0aea5" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="380" y1="155" x2="420" y2="105" stroke="#b0aea5" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="380" y1="185" x2="420" y2="240" stroke="#b0aea5" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="580" y1="240" x2="620" y2="190" stroke="#b0aea5" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="780" y1="155" x2="820" y2="105" stroke="#b0aea5" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="780" y1="185" x2="820" y2="190" stroke="#d97757" stroke-width="2" marker-end="url(#arrowO)"/>
+        <line x1="900" y1="140" x2="900" y2="200" stroke="#d97757" stroke-width="2" marker-end="url(#arrowO)"/>
+        <line x1="500" y1="140" x2="500" y2="200" stroke="#b0aea5" stroke-width="1.5" stroke-dasharray="3 3"/>
+        <line x1="780" y1="170" x2="1020" y2="170" stroke="#b0aea5" stroke-width="1" stroke-dasharray="4 4" marker-end="url(#arrow)"/>
+
+        <!-- labels -->
+        <text x="200" y="160" font-size="10" fill="#b0aea5" font-family="JetBrains Mono">I2C/SPI</text>
+        <text x="600" y="270" font-size="10" fill="#b0aea5" font-family="JetBrains Mono">Modbus TCP</text>
+        <text x="800" y="225" font-size="10" fill="#d97757" font-family="JetBrains Mono">control</text>
+        <text x="510" y="180" font-size="10" fill="#b0aea5" font-family="JetBrains Mono" text-anchor="middle">PDO</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============== 项目里程碑 ============== -->
+<section id="s-timeline">
+  <div class="container">
+    <div class="sec-head reveal">
+      <div>
+        <div class="sec-num">07 · ROADMAP</div>
+        <h2 class="sec-title">项目里程碑</h2>
+        <p class="sec-sub">一年期校级大创 · 资助 4000 元 · 目标产出 1-2 篇高水平论文 + 1-2 件专利 + 软著登记。</p>
+      </div>
+      <div class="sec-meta">2025.10 — 2026.12</div>
+    </div>
+
+    <div class="two-col-eq reveal">
+      <div class="panel">
+        <div class="timeline">
+          <div class="tl-item done">
+            <div class="tl-dot"></div>
+            <div class="tl-date">2025.10 — 2025.11</div>
+            <div class="tl-title">方向调研与选题</div>
+            <div class="tl-desc">梳理 PHM 技术现状，明确算控融合切入点。</div>
+          </div>
+          <div class="tl-item done">
+            <div class="tl-dot"></div>
+            <div class="tl-date">2025.12 — 2026.01</div>
+            <div class="tl-title">需求与技术路线</div>
+            <div class="tl-desc">完成开题报告与初步数字仿真环境搭建。</div>
+          </div>
+          <div class="tl-item done">
+            <div class="tl-dot"></div>
+            <div class="tl-date">2026.02 — 2026.03</div>
+            <div class="tl-title">算法轻量化与封装</div>
+            <div class="tl-desc">实时健康指数输出，工控机端部署。</div>
+          </div>
+          <div class="tl-item active">
+            <div class="tl-dot"></div>
+            <div class="tl-date">2026.04 — 2026.06 · current</div>
+            <div class="tl-title">Modbus TCP 联调</div>
+            <div class="tl-desc">通讯链路 + 正常/降级/停机控制逻辑联调。前端大屏稳定运行。</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-dot"></div>
+            <div class="tl-date">2026.07 — 2026.08</div>
+            <div class="tl-title">虚实联动示范</div>
+            <div class="tl-desc">伺服执行 + 报警平台 + 虚拟传感器联动。</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot"></div>
+            <div class="tl-date">2026.09 — 2026.10</div>
+            <div class="tl-title">多场景测试与评估</div>
+            <div class="tl-desc">改进系统可靠性与实时性，完成性能评估报告。</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot"></div>
+            <div class="tl-date">2026.11 — 2026.12</div>
+            <div class="tl-title">论文 · 软著 · 答辩</div>
+            <div class="tl-desc">整合材料，撰写论文，申请软著与专利，完成展示与答辩。</div>
+          </div>
+        </div>
+        <div class="action-bar" style="margin-top:24px">
+          <span class="action-label">演示控制</span>
+          <button class="btn btn-sm" onclick="simulateNormal()">正常工况</button>
+          <button class="btn btn-sm" onclick="simulateWarn()">轻度异常</button>
+          <button class="btn btn-sm" onclick="simulateDanger()">严重异常</button>
+          <button class="btn btn-sm btn-ghost" onclick="showCommModal()">通讯中断</button>
+          <button class="btn btn-sm btn-ghost" onclick="showModelOfflineModal()">模型离线</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== Footer ============== -->
+<div class="container">
+  <footer class="footer">
+    <div><strong>Project</strong>面向先进制造的算控融合国产化 PLC 大模型边缘推理与全栈智控研究</div>
+    <div><strong>Team</strong>李文斐 · 林振罡 · 陈晓雯 · 林屿乐 · 刘秋阳<br>指导：冯建设副教授</div>
+    <div><strong>Stack</strong>MX6300 · LubanCat · Jetson · pymodbus 3.6.9 · Flask · ECharts</div>
+    <div><strong>Endpoints</strong>/api/latest · /api/history?limit=60<br>SQLite: /home/matribox/plc_data.db</div>
+  </footer>
+</div>
+
+<!-- 通用弹窗 -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <div class="modal-icon" id="mIcon">·</div>
+    <div class="modal-title" id="mTitle">标题</div>
+    <div class="modal-body" id="mBody">正文</div>
+    <div class="modal-meta" id="mMeta" style="display:none"></div>
+    <div class="modal-progress" id="mProg" style="display:none"><div class="modal-progress-fill" id="mProgFill"></div></div>
+    <div class="modal-actions" id="mActions"></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+ * Backend wiring
+ * ========================================================== */
+const API_LATEST  = '/api/latest';
+const API_HISTORY = '/api/history?limit=60';
+const POLL_MS     = 1000;
+const COMM_LIMIT  = 5000;
+
+let lastOk = Date.now();
+let isDemo = false;
+let lastAlarm = 0;
+let trend = [];
+let vibArr = [];
+let runningState = true;
+let currentMode = 3;
+
+const pad = n => String(n).padStart(2,'0');
+function tickClock(){
+  const d = new Date();
+  document.getElementById('clock').textContent = pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
+}
+setInterval(tickClock, 1000); tickClock();
+
+/* ---- ECharts ---- */
+const trendChart = echarts.init(document.getElementById('trendChart'));
+const vibChart   = echarts.init(document.getElementById('vibChart'));
+const donutChart = echarts.init(document.getElementById('modelDonut'));
+const dsChart    = echarts.init(document.getElementById('datasetChart'));
+
+const baseAxisLabel = {color:'#b0aea5', fontFamily:'JetBrains Mono', fontSize:10};
+const baseSplitLine = {lineStyle:{color:'#e8e6dc'}};
+const baseTooltip   = {trigger:'axis', backgroundColor:'#faf9f5', borderColor:'#e8e6dc', textStyle:{color:'#141413', fontFamily:'Lora'}};
+
+function renderTrend(){
+  trendChart.setOption({
+    grid:{left:50,right:24,top:32,bottom:32},
+    legend:{data:['转速','电流','温度'], top:0, right:0, textStyle:{fontFamily:'Poppins', fontSize:12, color:'#141413'}, icon:'circle', itemWidth:8, itemHeight:8},
+    tooltip: baseTooltip,
+    xAxis:{type:'category', data: trend.map(d=>d.ts), axisLine:{lineStyle:{color:'#e8e6dc'}}, axisTick:{show:false}, axisLabel: baseAxisLabel},
+    yAxis:{type:'value', axisLine:{show:false}, splitLine: baseSplitLine, axisLabel: baseAxisLabel},
+    series:[
+      {name:'转速', type:'line', smooth:true, symbol:'none', data:trend.map(d=>d.rpm), lineStyle:{width:2.2, color:'#d97757'}, areaStyle:{color:'rgba(217,119,87,.10)'}, animationDuration:600},
+      {name:'电流', type:'line', smooth:true, symbol:'none', data:trend.map(d=>d.current), lineStyle:{width:2, color:'#6a9bcc'}, animationDuration:600},
+      {name:'温度', type:'line', smooth:true, symbol:'none', data:trend.map(d=>d.temp), lineStyle:{width:2, color:'#788c5d'}, animationDuration:600},
+    ]
+  });
+}
+function renderVib(){
+  vibChart.setOption({
+    grid:{left:50,right:24,top:20,bottom:32},
+    tooltip: baseTooltip,
+    xAxis:{type:'category', data: vibArr.map(d=>d.ts), axisLine:{lineStyle:{color:'#e8e6dc'}}, axisTick:{show:false}, axisLabel: baseAxisLabel},
+    yAxis:{type:'value', axisLine:{show:false}, splitLine: baseSplitLine, axisLabel: baseAxisLabel},
+    series:[{
+      name:'Vib RMS', type:'bar', data: vibArr.map(d=>d.vib), barWidth:'56%',
+      itemStyle:{borderRadius:[6,6,0,0], color: p => p.value>3.5?'#c25450':p.value>1.8?'#d97757':'#788c5d'}
+    }]
+  });
+}
+function renderDonut(conf){
+  donutChart.setOption({
+    series:[{
+      type:'pie', radius:['68%','86%'], silent:true, label:{show:false},
+      data:[
+        {value:conf, itemStyle:{color:'#d97757'}},
+        {value:100-conf, itemStyle:{color:'#e8e6dc'}}
+      ],
+      animationDuration:800,
+    }]
+  });
+  document.getElementById('confNum').textContent = conf;
+}
+function renderDataset(){
+  dsChart.setOption({
+    grid:{left:30, right:10, top:10, bottom:24},
+    tooltip:{trigger:'axis', backgroundColor:'#faf9f5', borderColor:'#e8e6dc'},
+    xAxis:{type:'category', data:['磨合','稳定','早期','加速','失效'], axisLine:{lineStyle:{color:'#e8e6dc'}}, axisTick:{show:false}, axisLabel:{color:'#b0aea5', fontFamily:'Poppins', fontSize:10}},
+    yAxis:{type:'value', axisLine:{show:false}, splitLine: baseSplitLine, axisLabel: baseAxisLabel},
+    series:[{
+      type:'bar', data:[18420, 52300, 31200, 18900, 7636], barWidth:'52%',
+      itemStyle:{borderRadius:[6,6,0,0], color: p => ['#788c5d','#788c5d','#d97757','#d97757','#c25450'][p.dataIndex]}
+    }]
+  });
+}
+
+/* ---- Apply data to UI ---- */
+function applyData(d){
+  const rpm     = d.rpm ?? 0;
+  const current = d.current ?? 0;
+  const temp    = (d.temp_x10 ?? 0) / 10;
+  const health  = d.health ?? 0;
+  const alarm   = d.alarm ?? 0;
+  const vib     = (d.vib_rms_x100 ?? 0) / 100;
+
+  setNum('m_rpm', Math.round(rpm));
+  setNum('m_current', Math.round(current));
+  setText('m_temp', temp.toFixed(1));
+  setNum('m_health', Math.round(health));
+  setText('m_vib', vib.toFixed(2));
+  document.getElementById('m_alarm').textContent = ['正常','轻度','严重'][alarm] ?? '—';
+
+  // sensor cards (mock fed)
+  setText('snr_acs712', Math.round(current));
+  setText('snr_pt100', temp.toFixed(1));
+  setText('snr_adxl345', vib.toFixed(2));
+  setText('snr_adxl1002', (vib * 1.8 + Math.random()*0.3).toFixed(2));
+
+  // vib detail
+  setText('vibRms', vib.toFixed(2)+' g');
+  setText('vibPeak', (vib*2.4).toFixed(2)+' g');
+  setText('vibKurt', (3 + vib*0.8).toFixed(2));
+
+  const tsLabel = (d.ts || new Date().toISOString().replace('T',' ').slice(0,19)).slice(-8);
+  document.getElementById('lastUpd').textContent = tsLabel;
+
+  trend.push({ts:tsLabel, rpm, current, temp});
+  if(trend.length > 60) trend.shift();
+  vibArr.push({ts:tsLabel, vib});
+  if(vibArr.length > 30) vibArr.shift();
+  renderTrend(); renderVib();
+
+  // health
+  const healthNum = document.getElementById('healthNum');
+  const bar = document.getElementById('healthBar');
+  bar.style.width = Math.max(0, Math.min(100, health)) + '%';
+  let color, status, action;
+  if(alarm >= 2 || health < 40){ color='var(--red)'; status='危险 · 严重异常'; action='建议动作：立即停机'; }
+  else if(alarm === 1 || health < 70){ color='var(--orange)'; status='关注 · 轻度异常'; action='建议动作：降速运行'; }
+  else { color='var(--green)'; status='健康 · 正常运行'; action='建议动作：继续运行'; }
+  healthNum.style.color = color;
+  healthNum.firstChild.textContent = Math.round(health);
+  bar.style.backgroundColor = color;
+  document.getElementById('healthStatus').textContent = status;
+  document.getElementById('healthAction').textContent = action;
+
+  // confidence donut (跟着 health 变)
+  const conf = Math.max(60, Math.min(99, Math.round(health * 0.95 + 5 + (Math.random()-0.5)*4)));
+  renderDonut(conf);
+
+  // RUL
+  const rul = Math.max(0, Math.round(health * 6 - 100 + Math.random()*40));
+  setText('rulVal', rul + ' h');
+
+  // top pill
+  const pill = document.getElementById('connPill');
+  pill.classList.remove('warn','danger');
+  let connText = '在线';
+  if(alarm === 1){ pill.classList.add('warn'); connText = '关注'; }
+  if(alarm === 2){ pill.classList.add('danger'); connText = '危险'; }
+  document.getElementById('connText').textContent = connText;
+
+  if(alarm !== lastAlarm){
+    if(alarm === 1) showWarnModal({health, vib_rms_x100: d.vib_rms_x100, current});
+    else if(alarm === 2) showDangerModal({health, alarm});
+    else if(alarm === 0 && lastAlarm > 0) showRecoverModal({health});
+    lastAlarm = alarm;
+  }
+
+  let tag = 'ok', label = '采集正常';
+  if(alarm === 1){ tag='warn';   label='轻度异常'; }
+  if(alarm === 2){ tag='danger'; label='严重异常'; }
+  pushEvent(tag, label, tsLabel);
+
+  lastOk = Date.now();
+  setDemo(d.__demo === true);
+}
+
+/* ---- count-up animation ---- */
+function setNum(id, val){
+  const el = document.getElementById(id);
+  if(!el) return;
+  const cur = parseInt(el.textContent.replace(/[^\d-]/g,'')) || 0;
+  if(cur === val){ el.textContent = val; return; }
+  const start = performance.now(); const dur = 500;
+  function step(t){
+    const p = Math.min(1, (t-start)/dur);
+    const e = 1 - Math.pow(1-p, 3);
+    el.textContent = Math.round(cur + (val-cur)*e);
+    if(p<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+function setText(id, t){
+  const el = document.getElementById(id);
+  if(el) el.textContent = t;
+}
+
+function pushEvent(tag, label, ts){
+  const list = document.getElementById('eventList');
+  if(list.firstChild && list.firstChild.dataset.k === tag+label) return;
+  const li = document.createElement('li');
+  li.className = 'event-item'; li.dataset.k = tag+label;
+  li.innerHTML = `<span class="event-time">${ts}</span><span class="event-tag ${tag}">${label}</span>`;
+  list.insertBefore(li, list.firstChild);
+  while(list.children.length > 14) list.removeChild(list.lastChild);
+}
+
+function setDemo(on){
+  if(on === isDemo) return;
+  isDemo = on;
+  document.getElementById('demoBadge').classList.toggle('show', on);
+}
+
+/* ---- Polling ---- */
+async function fetchOnce(){
+  try{
+    const r = await fetch(API_LATEST, {cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d = await r.json();
+    applyData(d);
+  }catch(e){
+    applyData(mockTick());
+  }
+}
+setInterval(fetchOnce, POLL_MS);
+fetchOnce();
+renderDataset();
+
+/* ---- Mock generator ---- */
+let mockState = {rpm:1458, current:767, temp_x10:348, health:92, alarm:0, vib_rms_x100:102};
+function mockTick(){
+  const j = (b,a) => b + Math.round((Math.random()-.5)*a);
+  return {
+    rpm:           runningState ? j(mockState.rpm, 30) : 0,
+    current:       runningState ? j(mockState.current, 24) : 0,
+    temp_x10:      j(mockState.temp_x10, 8),
+    health:        Math.max(0, Math.min(100, j(mockState.health, 2))),
+    alarm:         mockState.alarm,
+    vib_rms_x100:  Math.max(0, runningState ? j(mockState.vib_rms_x100, 18) : 5),
+    ts: new Date().toISOString().replace('T',' ').slice(0,19),
+    __demo: true,
+  };
+}
+function simulateNormal(){ mockState = {rpm:1458, current:767, temp_x10:348, health:92, alarm:0, vib_rms_x100:102}; }
+function simulateWarn(){   mockState = {rpm:1320, current:845, temp_x10:398, health:62, alarm:1, vib_rms_x100:218}; }
+function simulateDanger(){ mockState = {rpm:980,  current:1120,temp_x10:515, health:31, alarm:2, vib_rms_x100:412}; }
+
+/* ============================================================
+ * Motor control
+ * ========================================================== */
+const slider = document.getElementById('speedSlider');
+slider.addEventListener('input', e => {
+  document.getElementById('targetRpm').textContent = e.target.value;
+});
+document.querySelectorAll('#modeToggle .mode-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#modeToggle .mode-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    currentMode = parseInt(b.dataset.mode);
+  });
+});
+document.querySelectorAll('#bufferToggle .mode-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#bufferToggle .mode-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+  });
+});
+
+function applySpeed(){
+  const v = slider.value;
+  openModal({
+    icon:'info',
+    title:'下发速度指令',
+    body:`即将向 PLC 写入新的伺服速度目标值。Mode ${currentMode} 将通过 ${currentMode===3?'MC_DriverVelocityProfile':'MC_MoveVelocity 接力'} 平滑过渡。`,
+    meta:`目标速度：${v} rpm\n当前速度：${mockState.rpm} rpm\n模式：Mode ${currentMode}\n寄存器：4x158 = ${currentMode===3?2:3}（recommend_action）`,
+    actions:[
+      {text:'取消'},
+      {text:'确认下发', variant:'primary', onClick: () => {
+        mockState.rpm = parseInt(v);
+        pushEvent('info', `速度→${v}rpm`, nowHMS());
+      }},
+    ]
+  });
+}
+function toggleRun(){
+  runningState = !runningState;
+  const el = document.getElementById('runState');
+  if(runningState){ el.textContent = 'RUNNING'; el.style.color = 'var(--green)'; pushEvent('ok','电机启动', nowHMS()); }
+  else { el.textContent = 'STOPPED'; el.style.color = 'var(--mid)'; pushEvent('warn','电机停止', nowHMS()); }
+}
+function resetMotor(){
+  openModal({
+    icon:'info', title:'复位伺服轴', body:'调用 MC_Reset 清除当前轴的错误状态与告警寄存器。',
+    meta:`MC_Reset(Axis_num := 1, Execute := TRUE);\n清除 4x59 axis_fault_code`,
+    actions:[{text:'取消'},{text:'确认复位', variant:'primary', onClick: ()=> pushEvent('info','MC_Reset 完成', nowHMS())}]
+  });
+}
+
+/* ============================================================
+ * Sensor / fault / model / dataset modals
+ * ========================================================== */
+function showSensorDetail(name, role){
+  openModal({
+    icon:'info',
+    title:name + ' · 详情',
+    body:`${name} 是 LubanCat 采集网关上的 ${role} 传感器。原始数据在本地落 CSV 与 SQLite，提取的低维特征通过 Modbus TCP 写入 PLC。`,
+    meta:`角色：${role}\n采样率：100 Hz – 16 kHz（按类型）\n落盘路径：/home/matribox/sensor_${name.toLowerCase()}.csv\n特征字段：见 4x100~4x149 区`,
+    actions:[
+      {text:'关闭'},
+      {text:'查看原始波形', variant:'primary', onClick: ()=> pushEvent('info', name+' 波形请求', nowHMS())}
+    ]
+  });
+}
+
+function injectFault(type, label){
+  document.getElementById('hilFault').textContent = label;
+  document.getElementById('hilMode').textContent = '故障注入中';
+  // 故障注入会让 health 慢慢下降
+  mockState.health = Math.max(20, mockState.health - 15);
+  mockState.vib_rms_x100 += 80;
+  mockState.alarm = mockState.health < 40 ? 2 : 1;
+  openModal({
+    icon:'warn', title:'已注入故障：'+label,
+    body:'HIL 平台正在通过伺服转矩控制 + 预置缺陷部件复现该故障的物理特征。预计 5~10 秒后传感器将捕捉到信号变化。',
+    meta:`故障类型：${type}\nhealth → ${mockState.health}\nvib_rms 增量：+0.80 g`,
+    actions:[{text:'明白', variant:'primary'}]
+  });
+  pushEvent('warn', '故障注入：'+label, nowHMS());
+}
+function clearFault(){
+  document.getElementById('hilFault').textContent = 'none';
+  document.getElementById('hilMode').textContent = '稳定运行';
+  simulateNormal();
+  pushEvent('ok','HIL 故障已清除', nowHMS());
+}
+function generateDataset(){
+  openModal({
+    icon:'info', title:'生成训练数据', body:'将当前 HIL 工况下的传感器特征写入数据集，标注当前故障标签。',
+    actions:[
+      {text:'取消'},
+      {text:'开始生成', variant:'primary', onClick: ()=> {
+        progressModal('正在生成训练数据', '采集 → 特征提取 → 写入 CSV / SQLite', 1800, ()=> {
+          const cur = parseInt(document.getElementById('dsTotal').textContent.replace(/,/g,''));
+          document.getElementById('dsTotal').textContent = (cur+1024).toLocaleString();
+          document.getElementById('dsLast').textContent = new Date().toISOString().replace('T',' ').slice(0,16);
+          pushEvent('ok','新增 1024 条样本', nowHMS());
+        });
+      }}
+    ]
+  });
+}
+
+function reloadModel(){
+  progressModal('正在重新加载模型', 'Loading RUL-T-v0.3 onto Jetson NPU\nFP16 quantization · ONNX', 2200, ()=> {
+    pushEvent('info','模型已重新加载', nowHMS());
+  });
+}
+function showModelArchModal(){
+  openModal({
+    icon:'info', title:'模型架构 · RUL-T-v0.3',
+    body:'两阶段解耦框架：第一阶段使用并行多尺度 1D-CNN 提取局部时频特征；第二阶段使用参数共享 Transformer 编码器做跨设备时序建模。',
+    meta:`Stage 1: Multi-scale 1D-CNN\n  - kernels: [3, 7, 15, 31]\n  - residual + statistic pooling\nStage 2: Shared Transformer\n  - heads: 8, layers: 4\n  - non-asymmetric loss + monotonic constraint\nDeployment: ONNX → FP16 → Jetson NPU`,
+    actions:[{text:'关闭', variant:'primary'}]
+  });
+}
+function exportCsv(){
+  progressModal('正在导出宽表 CSV', 'sample_data → wide pivot → /home/matribox/data_wide_export.csv', 1500, ()=> {
+    pushEvent('ok','CSV 导出完成', nowHMS());
+  });
+}
+function showLabelModal(){
+  openModal({
+    icon:'info', title:'标签策略',
+    body:'当前数据集采用 3 类标签：0 正常 / 1 轻度异常 / 2 严重异常。轻度与严重的边界由 RUL 与 vib RMS 共同决定。',
+    meta:`label = 0 if RUL > 200h && vib < 1.8\nlabel = 1 if 50h < RUL <= 200h\nlabel = 2 if RUL <= 50h || vib > 3.5`,
+    actions:[{text:'关闭', variant:'primary'}]
+  });
+}
+
+function showNodeDetail(node){
+  const map = {
+    Sensors: {title:'传感器层', body:'ADXL345 / ADXL1002 / ACS712 / PT100 / INMP441 / 光栅。原始物理信号通过 I2C / SPI / 模拟量进入 LubanCat。'},
+    LubanCat: {title:'LubanCat 采集网关', body:'唯一的统一采集网关。本地运行 Python 采集程序，做时间戳对齐、基础特征提取，再将低维特征送 PLC，原始波形可选送 Jetson。'},
+    PLC: {title:'MX6300 PLC', body:'国产 PLC 主控。运行 ST 程序，通过 EtherCAT 控制伺服与步进。Modbus TCP 暴露 4x 寄存器作为 IT-OT 接口。'},
+    PLCLinux: {title:'PLC Linux', body:'Python + SQLite + Flask 在 PLC 内置 Linux 上运行。是数据落盘、API 暴露、前端服务的主载体，绕过 Factory Web 界面。'},
+    Jetson: {title:'NVIDIA Jetson', body:'边缘推理节点。运行剪枝量化后的两阶段解耦预测模型，输出健康度与告警等级，回写 PLC 4x150~4x179。'},
+    Frontend: {title:'前端大屏', body:'当前页面。从 Flask /api/latest 与 /api/history 取数据，并通过控制按钮把指令通过 PLC Linux 中转写回 4x。'},
+    Actuator: {title:'执行机构', body:'INVT 伺服电机模组（轴承诊断）+ GX80 滚珠丝杠滑台 1605-400mm 含 57 步进 + TB6600。'},
+    Cloud: {title:'Cloud (可选)', body:'非必需。仅作长期数据归档与远程运维。系统设计原则是工业现场闭环不依赖云端。'},
+  };
+  const x = map[node];
+  if(!x) return;
+  openModal({icon:'info', title:x.title, body:x.body, actions:[{text:'好的', variant:'primary'}]});
+}
+
+/* ============================================================
+ * Modal core
+ * ========================================================== */
+const modal = document.getElementById('modal');
+const ICONS = {info:'i', warn:'!', danger:'!', success:'✓', neutral:'·'};
+
+function openModal({icon='neutral', title, body, meta=null, actions=[]}){
+  document.getElementById('mIcon').className = 'modal-icon '+icon;
+  document.getElementById('mIcon').textContent = ICONS[icon] || '·';
+  document.getElementById('mTitle').textContent = title;
+  document.getElementById('mBody').textContent = body;
+  const metaEl = document.getElementById('mMeta');
+  if(meta){ metaEl.style.display='block'; metaEl.textContent = meta; } else metaEl.style.display='none';
+  document.getElementById('mProg').style.display = 'none';
+  const actEl = document.getElementById('mActions');
+  actEl.innerHTML = '';
+  (actions.length ? actions : [{text:'好的', variant:'primary'}]).forEach(a => {
+    const b = document.createElement('button');
+    b.className = 'btn ' + (a.variant==='primary'?'btn-primary':a.variant==='danger'?'btn-danger':'btn-ghost');
+    b.textContent = a.text;
+    b.onclick = () => { closeModal(); if(a.onClick) a.onClick(); };
+    actEl.appendChild(b);
+  });
+  modal.classList.add('active');
+}
+function closeModal(){ modal.classList.remove('active'); }
+modal.addEventListener('click', e => { if(e.target === modal) closeModal(); });
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeModal(); });
+
+function progressModal(title, body, ms, onDone){
+  openModal({icon:'info', title, body, actions:[]});
+  const fill = document.getElementById('mProgFill');
+  document.getElementById('mProg').style.display = 'block';
+  fill.style.width = '0';
+  document.getElementById('mActions').innerHTML = '';
+  let p = 0;
+  const tick = setInterval(()=> {
+    p += 8;
+    fill.style.width = Math.min(100, p) + '%';
+    if(p >= 100){
+      clearInterval(tick);
+      setTimeout(()=> {
+        closeModal();
+        openModal({icon:'success', title:'完成', body:'操作已成功执行。', actions:[{text:'关闭', variant:'primary'}]});
+        if(onDone) onDone();
+      }, 250);
+    }
+  }, ms/15);
+}
+
+function showWarnModal(d){
+  openModal({
+    icon:'warn', title:'检测到轻度异常',
+    body:'边缘推理引擎判定设备进入早期性能退化区。建议执行降速保护，延长机械寿命。',
+    meta:`health = ${d.health} · vib_rms_x100 = ${d.vib_rms_x100} · current = ${d.current}\n推荐动作：写入 4x158 = 1（recommend_action = 降速）`,
+    actions:[
+      {text:'稍后处理'},
+      {text:'执行降速', variant:'primary', onClick: ()=> { mockState.rpm = Math.max(500, mockState.rpm - 300); slider.value = mockState.rpm; document.getElementById('targetRpm').textContent = mockState.rpm; pushEvent('warn','已执行降速', nowHMS()); }},
+    ]
+  });
+}
+function showDangerModal(d){
+  openModal({
+    icon:'danger', title:'严重异常 · 建议立即停机',
+    body:'推理结果显示设备健康度逼近临界失效阈值。继续运行存在结构破坏与连锁故障风险。',
+    meta:`health = ${d.health} · alarm_level = 2 · stop_flag = 1\n推荐动作：写入 4x152 = 1（stop_flag）`,
+    actions:[
+      {text:'忽略告警'},
+      {text:'立即停机', variant:'danger', onClick: ()=> { runningState = false; toggleRun(); pushEvent('danger','已发送停机指令', nowHMS()); }},
+    ]
+  });
+}
+function showRecoverModal(d){
+  openModal({icon:'success', title:'设备已恢复正常', body:'各项指标回到正常区间。系统已切换回常规运行模式。', meta:`health = ${d.health} · alarm_level = 0`, actions:[{text:'知道了', variant:'primary'}]});
+}
+function showCommModal(){
+  openModal({
+    icon:'neutral', title:'通讯中断',
+    body:'已超过 5 秒未从 PLC Linux 取到新数据。请检查 Flask API 是否在运行、采集脚本是否在后台、网络是否通畅。',
+    meta:`检查命令：\n  ps -ef | grep plc_collect_multi.py\n  curl ${API_LATEST}\n  tail -f /home/matribox/collect.log`,
+    actions:[{text:'稍后'},{text:'重新连接', variant:'primary', onClick: fetchOnce}]
+  });
+  pushEvent('info','通讯中断告警', nowHMS());
+}
+function showModelOfflineModal(){
+  openModal({
+    icon:'info', title:'Jetson 模型离线',
+    body:'边缘推理服务无响应，系统已切换至保守模式：仅依赖 PLC 物理阈值控制，模型决策结果暂时不被采用。',
+    meta:`model_valid = 0 · jetson_online = 0\n保守策略：4x150~4x159 视为无效，PLC 走硬线 Fail-Safe`,
+    actions:[{text:'我知道了', variant:'primary'}]
+  });
+  pushEvent('info','模型服务离线', nowHMS());
+}
+function showEmergencyStopModal(){
+  openModal({
+    icon:'danger', title:'确认执行紧急停机？',
+    body:'此操作将立即切断动力输出并锁定执行机构。确认前请确保现场无人员操作风险。',
+    meta:`操作：写入 4x152 = 1（stop_flag）\n操作员：李文斐 · 时间：${new Date().toLocaleString()}`,
+    actions:[
+      {text:'取消'},
+      {text:'确认急停', variant:'danger', onClick: ()=> {
+        runningState = false; toggleRun();
+        openModal({icon:'success', title:'已发送急停指令', body:'指令已写入 PLC 寄存器 4x152。请等待 PLC 确认动作完成。', actions:[{text:'关闭', variant:'primary'}]});
+        pushEvent('danger','紧急停机', nowHMS());
+      }},
+    ]
+  });
+}
+function nowHMS(){ const d=new Date(); return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); }
+
+/* ============================================================
+ * Reveal-on-scroll
+ * ========================================================== */
+const io = new IntersectionObserver(entries => {
+  entries.forEach(en => { if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
+}, {threshold:0.12});
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+window.addEventListener('resize', () => {
+  trendChart.resize(); vibChart.resize(); donutChart.resize(); dsChart.resize();
+});
+</script>
+</body>
+</html>
