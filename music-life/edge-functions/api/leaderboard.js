@@ -48,7 +48,7 @@ function normalizeRow(row) {
     score: cleanScore(row.score),
     title: "云端分数",
     career: "",
-    summary: "",
+    summary: cleanText(row.summary, 10),
     createdAt: cleanText(row.created_at || row.createdAt, 40) || new Date().toISOString(),
   };
 }
@@ -58,7 +58,7 @@ function rankScores(scores) {
     .map(normalizeRow)
     .filter((entry) => entry.score > 0)
     .sort((a, b) => b.score - a.score || a.createdAt.localeCompare(b.createdAt))
-    .slice(0, 50);
+    .slice(0, 100);
 }
 
 async function supabaseFetch(env, path, options = {}) {
@@ -87,21 +87,34 @@ async function supabaseFetch(env, path, options = {}) {
 }
 
 async function readTop(env) {
-  const result = await supabaseFetch(
+  let result = await supabaseFetch(
     env,
-    "music_life_scores?select=id,nickname,score,created_at&order=score.desc,created_at.asc&limit=30",
+    "music_life_scores?select=id,nickname,score,summary,created_at&order=score.desc,created_at.asc&limit=100",
   );
+  if (result.configured && !result.ok) {
+    result = await supabaseFetch(
+      env,
+      "music_life_scores?select=id,nickname,score,created_at&order=score.desc,created_at.asc&limit=100",
+    );
+  }
   if (!result.configured) return { cloud: false, scores: [] };
   if (!result.ok || !Array.isArray(result.data)) throw new Error(`Supabase read failed: ${result.status}`);
-  return { cloud: true, scores: rankScores(result.data).slice(0, 30) };
+  return { cloud: true, scores: rankScores(result.data).slice(0, 100) };
 }
 
 async function saveScore(env, row) {
-  const insert = await supabaseFetch(env, "music_life_scores", {
+  let insert = await supabaseFetch(env, "music_life_scores", {
     method: "POST",
     headers: { prefer: "return=minimal" },
-    body: JSON.stringify({ nickname: row.nickname, score: row.score }),
+    body: JSON.stringify({ nickname: row.nickname, score: row.score, summary: row.summary }),
   });
+  if (insert.configured && !insert.ok) {
+    insert = await supabaseFetch(env, "music_life_scores", {
+      method: "POST",
+      headers: { prefer: "return=minimal" },
+      body: JSON.stringify({ nickname: row.nickname, score: row.score }),
+    });
+  }
   if (!insert.configured) return { cloud: false, saved: false, scores: [] };
   if (!insert.ok) throw new Error(`Supabase insert failed: ${insert.status}`);
   return { ...(await readTop(env)), saved: true };
@@ -124,6 +137,7 @@ export default async function onRequest({ request, env }) {
     const row = normalizeRow({
       nickname: input.nickname,
       score: input.score,
+      summary: input.summary,
       createdAt: new Date().toISOString(),
     });
     if (!row.score) return json(request, { error: "分数无效" }, 400);
