@@ -1,4 +1,4 @@
-const partUrls = Array.from({ length: 5 }, (_, index) => `./index-BYu0IQkG.part${index}.bin`);
+const partUrls = Array.from({ length: 12 }, (_, index) => `./index-BYu0IQkG.part${index}.txt`);
 
 try {
   const buffers = await Promise.all(partUrls.map(async (url) => {
