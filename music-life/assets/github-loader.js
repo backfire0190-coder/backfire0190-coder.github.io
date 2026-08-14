@@ -13,10 +13,10 @@ try {
     source.set(buffer, offset);
     offset += buffer.length;
   }
-  const moduleUrl = URL.createObjectURL(new Blob([source], { type: "text/javascript" }));
-  await import(moduleUrl);
-  URL.revokeObjectURL(moduleUrl);
+  const script = document.createElement("script");
+  script.textContent = new TextDecoder().decode(source);
+  document.head.appendChild(script);
 } catch (error) {
   console.error(error);
-  document.body.innerHTML = '<main style="padding:40px;font-family:sans-serif"><h1>音乐人生加载失败</h1><p>请刷新页面后重试。</p></main>';
+  document.body.innerHTML = `<main style="padding:40px;font-family:sans-serif"><h1>音乐人生加载失败</h1><p>${error instanceof Error ? error.message : "请刷新页面后重试。"}</p></main>`;
 }
