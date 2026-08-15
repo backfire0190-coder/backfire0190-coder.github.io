@@ -4,6 +4,7 @@ const ALLOWED_ORIGINS = new Set([
   "http://localhost:3000",
   "http://localhost:5173",
 ]);
+const LEADERBOARD_DISPLAY_LIMIT = 1000;
 
 function corsOrigin(request) {
   const origin = request.headers.get("origin") || "";
@@ -58,7 +59,7 @@ function rankScores(scores) {
     .map(normalizeRow)
     .filter((entry) => entry.score > 0)
     .sort((a, b) => b.score - a.score || a.createdAt.localeCompare(b.createdAt))
-    .slice(0, 100);
+    .slice(0, LEADERBOARD_DISPLAY_LIMIT);
 }
 
 async function supabaseFetch(env, path, options = {}) {
@@ -89,20 +90,21 @@ async function supabaseFetch(env, path, options = {}) {
 async function readTop(env) {
   let result = await supabaseFetch(
     env,
-    "music_life_scores?select=id,nickname,score,summary,created_at&order=score.desc,created_at.asc&limit=100",
+    `music_life_scores?select=id,nickname,score,summary,created_at&order=score.desc,created_at.asc&limit=${LEADERBOARD_DISPLAY_LIMIT}`,
   );
   if (result.configured && !result.ok) {
     result = await supabaseFetch(
       env,
-      "music_life_scores?select=id,nickname,score,created_at&order=score.desc,created_at.asc&limit=100",
+      `music_life_scores?select=id,nickname,score,created_at&order=score.desc,created_at.asc&limit=${LEADERBOARD_DISPLAY_LIMIT}`,
     );
   }
   if (!result.configured) return { cloud: false, scores: [] };
   if (!result.ok || !Array.isArray(result.data)) throw new Error(`Supabase read failed: ${result.status}`);
-  return { cloud: true, scores: rankScores(result.data).slice(0, 100) };
+  return { cloud: true, scores: rankScores(result.data) };
 }
 
 async function saveScore(env, row) {
+  // Every submitted score is inserted. The display cap is only for read/display.
   let insert = await supabaseFetch(env, "music_life_scores", {
     method: "POST",
     headers: { prefer: "return=minimal" },

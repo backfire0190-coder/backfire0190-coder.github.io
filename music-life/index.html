@@ -9,6 +9,83 @@
     />
     <meta name="theme-color" content="#f1ede4" />
     <title>音乐大师巅峰发展人生｜全乐器音乐家模拟器</title>
+    <style>
+      .github-feedback-toggle{position:fixed;top:24px;right:clamp(18px,4vw,60px);z-index:9999;background:#6f1d2c;color:#fff9ef;border:1px solid rgba(111,29,44,.35);min-height:38px;padding:8px 14px;font:800 13px/1.2 Noto Serif SC,serif;letter-spacing:.08em;cursor:pointer;box-shadow:0 12px 34px rgba(111,29,44,.18)}
+      .github-feedback-panel{position:fixed;top:72px;right:clamp(18px,4vw,60px);z-index:10000;width:min(360px,calc(100vw - 28px));background:rgba(255,250,242,.97);border:1px solid rgba(111,29,44,.22);padding:16px;box-shadow:0 22px 60px rgba(53,39,28,.2);display:none;color:#2a221d}
+      .github-feedback-panel.open{display:grid;gap:10px}.github-feedback-panel label{color:#6f1d2c;font:800 12px/1.4 Noto Serif SC,serif;letter-spacing:.14em}.github-feedback-panel textarea{width:100%;min-height:92px;resize:vertical;border:1px solid #ded4c8;background:rgba(255,255,255,.72);padding:12px;color:#2a221d;font:inherit;line-height:1.55}.github-feedback-panel textarea:focus{border-color:rgba(111,29,44,.55);outline:1px solid rgba(111,29,44,.45)}.github-feedback-row{display:flex;align-items:center;justify-content:space-between;gap:12px}.github-feedback-row small{color:#80786d;font-size:11px;line-height:1.45}.github-feedback-row button{background:#6f1d2c;color:#fff;border:0;min-height:38px;padding:8px 14px;font-weight:800;white-space:nowrap;cursor:pointer}.github-feedback-row button:disabled{opacity:.45;cursor:not-allowed}
+      @media (max-width:700px){.github-feedback-toggle{top:9px;right:12px;border-radius:10px;min-height:38px;padding:7px 12px;font-size:12px}.github-feedback-panel{top:56px;left:12px;right:12px;width:auto;border-radius:14px}}
+    </style>
+    <script>
+      (() => {
+        const SUPABASE_URL = "https://sfbcxwymzfolzlavlpwl.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_nb2c0FrgdtZCo6tAKQALMg_3vkvj3P9";
+        const nativeFetch = window.fetch.bind(window);
+        window.fetch = (input, init) => {
+          try {
+            const url = typeof input === "string" ? input : input && input.url;
+            if (url && url.includes("music_life_scores") && url.includes("limit=100")) {
+              const patched = url.replace(/limit=100(?!0)/g, "limit=1000");
+              if (typeof input === "string") return nativeFetch(patched, init);
+              return nativeFetch(new Request(patched, input), init);
+            }
+          } catch {}
+          return nativeFetch(input, init);
+        };
+        function submitFeedback(message, setStatus) {
+          const body = {
+            source: "intro",
+            message: message.trim().slice(0, 2000),
+            nickname: localStorage.getItem("music-life-nickname") || "",
+            page_url: location.href,
+            user_agent: navigator.userAgent,
+          };
+          return nativeFetch(`${SUPABASE_URL}/rest/v1/music_life_feedback`, {
+            method: "POST",
+            headers: {
+              apikey: SUPABASE_KEY,
+              authorization: `Bearer ${SUPABASE_KEY}`,
+              "content-type": "application/json",
+              prefer: "return=minimal",
+            },
+            body: JSON.stringify(body),
+          }).then((response) => {
+            if (!response.ok) throw new Error(String(response.status));
+            setStatus("已提交给开发者");
+          });
+        }
+        function mountFeedback() {
+          if (document.querySelector(".github-feedback-toggle")) return;
+          const toggle = document.createElement("button");
+          toggle.className = "github-feedback-toggle";
+          toggle.type = "button";
+          toggle.textContent = "反馈 / 建议";
+          const panel = document.createElement("section");
+          panel.className = "github-feedback-panel";
+          panel.innerHTML = `<label for="github-feedback-text">给开发者的建议</label><textarea id="github-feedback-text" placeholder="哪里不专业、哪里不好玩、哪里想加内容，都可以直接写。"></textarea><div class="github-feedback-row"><small>只提交给开发者，不展示给其他玩家。</small><button type="button">提交建议</button></div>`;
+          const textarea = panel.querySelector("textarea");
+          const button = panel.querySelector("button");
+          const status = panel.querySelector("small");
+          toggle.addEventListener("click", () => panel.classList.toggle("open"));
+          button.addEventListener("click", async () => {
+            const value = textarea.value.trim();
+            if (!value) return;
+            button.disabled = true;
+            status.textContent = "提交中";
+            try {
+              await submitFeedback(value, (text) => { status.textContent = text; });
+              textarea.value = "";
+            } catch {
+              status.textContent = "提交失败，可能反馈表还没在 Supabase 创建";
+            } finally {
+              button.disabled = false;
+            }
+          });
+          document.body.append(toggle, panel);
+        }
+        if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mountFeedback);
+        else mountFeedback();
+      })();
+    </script>
     <script type="module" crossorigin src="./assets/index-CDqtHkrZ.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/index-Cw-1PvD0.css">
   </head>
