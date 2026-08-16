@@ -1,0 +1,50 @@
+name: Apply chosen one hotfix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/apply-chosen-one-hotfix.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch deployed music-life bundle
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("music-life/assets/index-CDqtHkrZ.js")
+          text = path.read_text(encoding="utf-8")
+          replacements = [
+              ("onKeyDown:e=>e.key===`Enter`&&n.trim()&&t(`instrument`)", "onKeyDown:e=>e.key===`Enter`&&n.trim()&&(sessionStorage.setItem(`music-life-chosen-one`,`0`),t(`instrument`))"),
+              ("onClick:()=>t(`instrument`),disabled:!n.trim()", "onClick:()=>{window.__mlChosenTriggered?window.__mlChosenTriggered=!1:(sessionStorage.setItem(`music-life-chosen-one`,`0`),t(`instrument`))},onPointerDown:()=>{n.trim()&&(window.__mlChosenTriggered=!1,clearTimeout(window.__mlHold),window.__mlHold=setTimeout(()=>{window.__mlChosenTriggered=!0,sessionStorage.setItem(`music-life-chosen-one`,`1`),t(`instrument`)},5e3))},onPointerUp:()=>clearTimeout(window.__mlHold),onPointerLeave:()=>clearTimeout(window.__mlHold),onPointerCancel:()=>clearTimeout(window.__mlHold),onContextMenu:e=>e.preventDefault(),disabled:!n.trim()"),
+              ("function ct(e){let n=o||Math.floor(Date.now()%2147483647),r={techniqueTalent:j(n,101),musicalityTalent:j(n,202),love:j(n,303)};a(e),s(n),l(r),d(0),ot(e,r),t(`fate`)}", "function ct(e){let n=o||Math.floor(Date.now()%2147483647),r=sessionStorage.getItem(`music-life-chosen-one`)==`1`?{techniqueTalent:80,musicalityTalent:80,love:80}:{techniqueTalent:j(n,101),musicalityTalent:j(n,202),love:j(n,303)};a(e),s(n),l(r),d(0),ot(e,r),t(`fate`)}"),
+              ("function lt(){let e=o*1664525+1013904223>>>0,t={techniqueTalent:j(e,101),musicalityTalent:j(e,202),love:j(e,303)};s(e),l(t),d(0),ot(i,t)}", "function lt(){let e=o*1664525+1013904223>>>0,t=sessionStorage.getItem(`music-life-chosen-one`)==`1`?{techniqueTalent:80,musicalityTalent:80,love:80}:{techniqueTalent:j(e,101),musicalityTalent:j(e,202),love:j(e,303)};s(e),l(t),d(0),ot(i,t)}"),
+              ("function ut(e){if(!c)return;let r=Math.round(45+A(o,404,b(e))*50),a=de(17+c.techniqueTalent*.34+(v[e].tech-1)*12+A(o,501)*5,34,55),s=de(17+c.musicalityTalent*.34+(v[e].music-1)*12+A(o,502)*5,34,55),l=Math.round((c.techniqueTalent+c.musicalityTalent)/12);S({", "function ut(e){if(!c)return;let u=sessionStorage.getItem(`music-life-chosen-one`)==`1`,r=Math.round(45+A(o,404,b(e))*50),a=u?80:de(17+c.techniqueTalent*.34+(v[e].tech-1)*12+A(o,501)*5,34,55),s=u?80:de(17+c.musicalityTalent*.34+(v[e].music-1)*12+A(o,502)*5,34,55),l=Math.round((c.techniqueTalent+c.musicalityTalent)/12);S({"),
+              ("stats:{technique:a,musicality:s,love:c.love,stress:12,health:90,stage:Math.max(4,l-3),reputation:0,teaching:0,ensemble:Math.max(5,l-2),network:e===`shen`?8:e===`tang`?7:5}", "stats:{technique:a,musicality:s,love:u?80:c.love,stress:12,health:90,stage:Math.max(4,l-3),reputation:0,teaching:0,ensemble:Math.max(5,l-2),network:e===`shen`?8:e===`tang`?7:5}"),
+              ("awards:[],flags:[],orchestraTier:0", "awards:[],flags:u?[`chosen-one-mode`]:[],orchestraTier:0"),
+          ]
+          for old, new in replacements:
+              count = text.count(old)
+              if count == 0 and new in text:
+                  continue
+              if count != 1:
+                  raise SystemExit(f"unexpected replacement count {count} for {old[:80]!r}")
+              text = text.replace(old, new)
+          path.write_text(text, encoding="utf-8")
+          PY
+          node --check music-life/assets/index-CDqtHkrZ.js
+      - name: Commit patched bundle
+        run: |
+          git config user.name "backfire0190-coder"
+          git config user.email "backfire0190@gmail.com"
+          git add music-life/assets/index-CDqtHkrZ.js
+          git commit -m "Apply chosen one hotfix to deployed bundle" || exit 0
+          git push
